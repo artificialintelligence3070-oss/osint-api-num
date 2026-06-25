@@ -2,14 +2,22 @@ import os
 import time
 import json
 import requests
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__)
-CORS(app)
 
 # ==========================================
-# CONFIGURATION
+# CORS — Allow all origins for your frontend
+# ==========================================
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+# ==========================================
+# CONFIGURATION — Use /tmp for Vercel (read-only except /tmp)
 # ==========================================
 DB_PATH = "/tmp/vault.db"
 GLOBAL_KEYS_VAULT = {}
@@ -36,14 +44,9 @@ TOOLS_CONFIG = {
 # SELF-HEALING AGENT ENGINE
 # ==========================================
 def run_self_healing_agent(context_key=None, inbound_sync=None):
-    """
-    Automated Runtime Diagnostics Agent.
-    Fixes config drift, heals DB links, preserves key maps.
-    """
     global GLOBAL_KEYS_VAULT, SYSTEM_GLOBAL_MUTEX
     agent_report = []
     
-    # 1. Memory Wipe Recovery via Browser Sync
     if inbound_sync and isinstance(inbound_sync, list):
         for item in inbound_sync:
             k_str = item.get("key")
@@ -51,19 +54,16 @@ def run_self_healing_agent(context_key=None, inbound_sync=None):
                 GLOBAL_KEYS_VAULT[k_str] = item
                 agent_report.append(f"Restored key node [{k_str}] from local ledger.")
     
-    # 2. Repair Missing Storage
     if not os.path.exists(DB_PATH) and GLOBAL_KEYS_VAULT:
         save_local_disk_db()
         agent_report.append("Rebuilt corrupted disk database file structure.")
         
-    # 3. Dynamic Upstream Sanitization
     for route, endpoint in TOOLS_CONFIG.items():
         if "duckdns.org" not in endpoint:
             fixed = route if route != 'family' else 'adharfamily'
             TOOLS_CONFIG[route] = f"{API_BASE}/{fixed}"
             agent_report.append(f"Corrected broken upstream URI for {route}")
 
-    # 4. Heal Corrupted State Flags
     if context_key and context_key in GLOBAL_KEYS_VAULT:
         target = GLOBAL_KEYS_VAULT[context_key]
         if "status" not in target:
@@ -111,6 +111,13 @@ def clean_branding_data(data):
         cleaned["by"] = "shayan_explorer"
         cleaned["channel"] = "https://t.me/shayan_explorer_channel"
     return cleaned
+
+# ==========================================
+# SERVE FRONTEND HTML
+# ==========================================
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
 
 # ==========================================
 # ADMIN ROUTES
@@ -306,10 +313,9 @@ def lookup_tg_id(): return execute_proxy("tgidinfo", "id", "TELEGRAM_ID")
 def run_bomber(): return execute_proxy("bomber", "number", "SMS_BOMBER")
 
 # ==========================================
-# VERCEL HANDLER
+# VERCEL SERVERLESS HANDLER
 # ==========================================
-def handler(request): 
-    return app(request)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# This is the entry point Vercel calls
+def handler(request, *args, **kwargs):
+    with app.request_context(request.environ):
+        return app(request.environ, request.start_response)
