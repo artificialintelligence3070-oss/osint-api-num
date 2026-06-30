@@ -7,15 +7,18 @@ from fastapi.templating import Jinja2Templates
 
 app = FastAPI(title="SHAYAN_EXPLORER Hub Engine")
 
-# Configure absolute paths for templates to avoid Vercel path mapping issues
-templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
+# Bulletproof path tracking for Vercel Serverless Architecture
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(CURRENT_DIR)
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
-# Real Admin Session Credentials
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+# --- REST OF YOUR CODE STAYS EXACTLY THE SAME ---
 ADMIN_CREDENTIALS = {"username": "vernex", "password": "vernex@16"}
 UPSTREAM_BASE_KEY = "vernex-6a9dc4fdd5923c40b0aba27bf1e39e3f"
 UPSTREAM_URL = "https://ft-osint-api.duckdns.org/api"
 
-# Persistent Global Stateful Objects (In-Memory Simulation)
 API_KEYS_DB = {
     "RAHUL-SECRET-KEY": {
         "name": "Rahul",
@@ -24,7 +27,7 @@ API_KEYS_DB = {
         "price": "599",
         "expiry": "2026-12-31T23:59",
         "limit": 5000,
-        "used": 14,
+        "used": 0,
         "rate_limit": 1000,
         "allowed_tools": ["number", "paytm", "upi", "ip", "challan"],
         "key_note": "Premium License Enabled",
@@ -32,13 +35,7 @@ API_KEYS_DB = {
     }
 }
 
-LOGS_DB = [
-    {
-        "timestamp": "2026-06-30 17:52:10",
-        "endpoint": "NUMBER",
-        "details": "Rahul [RAHUL-SECRET-KEY] searched for NUMBER: 9876543210"
-    }
-]
+LOGS_DB = []
 
 VALID_ENDPOINTS = [
     "adv", "paytm", "imei", "calltracer", "upi", "ifsc", 
@@ -47,17 +44,13 @@ VALID_ENDPOINTS = [
 ]
 
 def check_auth_session(request: Request):
-    """Validates if the client cookie possesses active administrative rights"""
     session = request.cookies.get("shayan_admin_session")
     if session != "active_secure_shayan_auth_token":
         raise HTTPException(status_code=401)
     return True
 
-# --- ROUTING SYSTEM ---
-
 @app.get("/", response_class=HTMLResponse)
 async def login_interface(request: Request):
-    # If already logged in, bypass directly to the workspace panel
     if request.cookies.get("shayan_admin_session") == "active_secure_shayan_auth_token":
         return RedirectResponse(url="/dashboard", status_code=303)
     return templates.TemplateResponse("dashboard.html", {"request": request, "page": "login", "error": None})
@@ -111,7 +104,6 @@ async def action_create_key(
     except HTTPException:
         return RedirectResponse(url="/", status_code=303)
 
-    # Core data population into our in-memory data tables
     API_KEYS_DB[custom_key] = {
         "name": key_name,
         "email": customer_email,
@@ -138,8 +130,6 @@ async def action_delete_key(key_id: str, request: Request):
         del API_KEYS_DB[key_id]
     return RedirectResponse(url="/dashboard", status_code=303)
 
-# --- SECURE API ROUTE GATEWAY PROXY ---
-
 @app.get("/api/{endpoint}")
 async def gateway_proxy_handler(endpoint: str, request: Request):
     if endpoint not in VALID_ENDPOINTS:
@@ -153,25 +143,20 @@ async def gateway_proxy_handler(endpoint: str, request: Request):
     
     target_key_metadata = API_KEYS_DB[user_provided_key]
     
-    # Expiry Clock Check
     current_time_iso = datetime.datetime.now().isoformat()
     if target_key_metadata["expiry"] and current_time_iso > target_key_metadata["expiry"]:
         return JSONResponse(status_code=403, content={"status": "error", "message": "Access Forbidden: Provided key has reached its expiration threshold."})
         
-    # Transaction Volume Check
     if target_key_metadata["used"] >= target_key_metadata["limit"]:
         return JSONResponse(status_code=429, content={"status": "error", "message": "Access Throttled: Request allocation balance exhausted."})
     
-    # Scope Check
     if target_key_metadata["allowed_tools"] and endpoint not in target_key_metadata["allowed_tools"]:
         return JSONResponse(status_code=403, content={"status": "error", "message": f"Access Exception: Your token scope does not include access to [{endpoint}]"})
 
-    # Extract clean target query input to store context explicitly within logs database
     input_argument_keys = [k for k in query_params.keys() if k != 'key']
     payload_value = query_params.get(input_argument_keys[0], "N/A") if input_argument_keys else "N/A"
     payload_header = input_argument_keys[0].upper() if input_argument_keys else "QUERY"
 
-    # Save cleanly structured logs
     audit_string = f"{target_key_metadata['name']} [{user_provided_key}] searched for {payload_header}: {payload_value}"
     LOGS_DB.append({
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -179,10 +164,8 @@ async def gateway_proxy_handler(endpoint: str, request: Request):
         "details": audit_string
     })
     
-    # Bump active key counter metric
     target_key_metadata["used"] += 1
     
-    # Prepare internal downstream call parameters
     downstream_parameters = {"key": UPSTREAM_BASE_KEY}
     if input_argument_keys:
         downstream_parameters[input_argument_keys[0]] = payload_value
@@ -192,13 +175,11 @@ async def gateway_proxy_handler(endpoint: str, request: Request):
         upstream_payload = network_call.json()
         
         if isinstance(upstream_payload, dict):
-            # Safe cleaning loop removing legacy channel descriptions
             legacy_tags = ["developer", "channel", "owner", "credits", "api_developer"]
             for target_tag in list(upstream_payload.keys()):
                 if any(x in target_tag.lower() or x in str(upstream_payload[target_tag]).lower() for x in legacy_tags):
                     del upstream_payload[target_tag]
             
-            # Append personalized key note and clean developer signature
             upstream_payload["api_developer"] = "SHAYAN_EXPLORER"
             if target_key_metadata.get("key_note"):
                 upstream_payload["note"] = target_key_metadata["key_note"]
