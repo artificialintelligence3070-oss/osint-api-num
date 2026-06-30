@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHAYAN_EXPLORER | Portal Control Room</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --surface-bg: #03050d;
+            --sidebar-bg: #080a14;
+            --card-glass: rgba(13, 17, 34, 0.7);
+            --border-glow: rgba(255, 255, 255, 0.05);
+            --neon-accent: #4f46e5;
+            --neon-glow: rgba(79, 70, 229, 0.25);
+        }
+
+        body {
+            background-color: var(--surface-bg);
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            letter-spacing: -0.1px;
+        }
+
+        /* Full Screen Real Login Interface Custom Styles */
+        .login-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.1), transparent 45%), #03050d;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--card-glass);
+            border: 1px solid var(--border-glow);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 440px;
+            padding: 40px 35px;
+            backdrop-filter: blur(20px);
+        }
+
+        /* Main Workspace Controls Layout */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-glow);
+            width: 260px;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 24px 16px;
+            z-index: 1030;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main-panel {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px 40px;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 0;
+        }
+
+        /* Sidebar Responsive Collapsed Logic Handles */
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(-260px);
+        }
+
+        body.sidebar-collapsed .main-panel {
+            margin-left: 0;
+        }
+
+        .brand-hdr {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 35px;
+            padding-left: 8px;
+        }
+
+        .brand-hdr span {
+            color: #4f46e5;
+        }
+
+        .menu-link {
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            text-decoration: none;
+            margin-bottom: 4px;
+            transition: all 0.15s ease;
+            font-weight: 500;
+        }
+
+        .menu-link:hover, .menu-link.active {
+            color: #ffffff;
+            background-color: rgba(255,255,255,0.03);
+        }
+
+        .menu-link.active {
+            background-color: rgba(79, 70, 229, 0.12);
+            color: #818cf8;
+            box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Premium Dashboard Container Blocks */
+        .content-card {
+            background: var(--card-glass);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header-title {
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #9ca3af;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .form-label-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-control, .form-select {
+            background-color: #0b0d16;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+            padding: 11px 14px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0d101d;
+            border-color: var(--neon-accent);
+            box-shadow: 0 0 0 4px var(--neon-glow);
+            color: #ffffff;
+        }
+
+        /* Dynamic Tool Matrix Selectors Grid Configuration */
+        .tools-matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .matrix-item-box {
+            background-color: rgba(11, 13, 22, 0.6);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .matrix-item-box:hover {
+            border-color: rgba(255,255,255,0.1);
+            background-color: rgba(255,255,255,0.01);
+        }
+
+        .matrix-checkbox {
+            margin-right: 12px;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--neon-accent);
+        }
+
+        .matrix-label {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: #d1d5db;
+            font-weight: 600;
+        }
+
+        .btn-action-primary {
+            background-color: var(--neon-accent);
+            border: none;
+            color: #ffffff;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 8px;
+            transition: opacity 0.15s ease;
+        }
+
+        .btn-action-primary:hover {
+            opacity: 0.9;
+            color: #ffffff;
+        }
+
+        .badge-scope-pill {
+            background: rgba(79, 70, 229, 0.1);
+            border: 1px solid rgba(79, 70, 229, 0.25);
+            color: #a5b4fc;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            display: inline-block;
+            margin: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Top App Bar Custom Navigation */
+        .app-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-glow);
+        }
+
+        .three-dots-trigger-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .three-dots-trigger-btn:hover {
+            background-color: rgba(255,255,255,0.04);
+        }
+
+        /* --- MOBILE LAYOUT RESPONSIVE MEDIA QUERIES --- */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-260px);
+            }
+            .main-panel {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+            body.sidebar-opened-mobile .sidebar {
+                transform: translateX(0);
+            }
+            body.sidebar-opened-mobile .sidebar-backdrop {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6);
+                z-index: 1020;
+                backdrop-filter: blur(4px);
+            }
+            .tools-matrix-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .tools-matrix-grid {
+                grid-template-columns: repeat(1, 1fr);
+            }
+            .content-card {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    {% if page == "login" %}
+    <div class="login-wrap">
+        <div class="login-card">
+            <h3 class="text-center mb-1 fw-bold text-white">SHAYAN_EXPLORER</h3>
+            <p class="text-muted text-center small mb-4">API Management Suite Console</p>
+            
+            {% if error %}
+                <div class="alert alert-danger bg-danger bg-opacity-10 border-0 text-danger text-center small py-2 mb-3">{{ error }}</div>
+            {% endif %}
+            
+            <form action="/auth/login" method="POST">
+                <div class="mb-3">
+                    <label class="form-label-title">Administrator Username</label>
+                    <input type="text" name="username" class="form-control" autocomplete="off" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label-title">Access Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-action-primary w-100 py-2">Authenticate Secure Session</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if page == "panel" %}
+    <div class="sidebar-backdrop" id="mobileBackdrop" onclick="dismissMobileSidebar()"></div>
+
+    <div class="wrapper">
+        <div class="sidebar" id="appSidebar">
+            <div class="brand-hdr">
+                <span>⚡</span> SHAYAN_EXPLORER
+            </div>
+            <nav>
+                <a href="#" class="menu-link"><i class="bi bi-grid-1x2"></i> Core Dashboard</a>
+                <a href="#" class="menu-link active"><i class="bi bi-key-fill"></i> Access API Keys</a>
+                <a href="#" class="menu-link"><i class="bi bi-shield-lock"></i> IP Access Control</a>
+                <a href="#" class="menu-link"><i class="bi bi-cpu"></i> Infrastructure Cache</a>
+                <a href="/auth/logout" class="menu-link text-danger mt-4"><i class="bi bi-box-arrow-left"></i> End Admin Session</a>
+            </nav>
+        </div>
+
+        <div class="main-panel">
+            <div class="app-topbar">
+                <div>
+                    <span class="text-white fw-bold small">● Workspace Configuration Panel</span>
+                    <span class="mx-2 text-muted">/</span>
+                    <span class="text-muted small font-monospace">admin/keys</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="small text-muted d-none d-md-inline">Live Gateway Operational Timeframe</span>
+                    <button class="three-dots-trigger-btn" id="layoutToggleBtn" onclick="toggleLayoutStructure()" title="Toggle View Layout Viewport">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-title">Create Dedicated Cryptographic Application Key</div>
+                <form action="/keys/create" method="POST">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Key Operational Class Type</label>
+                            <select class="form-select" name="key_type">
+                                <option value="Lifetime">Lifetime Subscription Profile</option>
+                                <option value="Trial">Temporary Trial Evaluation Token</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Custom Key Unique String ID</label>
+                            <input type="text" name="custom_key" class="form-control" placeholder="e.g. rahul-custom-vip" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Client Identity Name</label>
+                            <input type="text" name="key_name" class="form-control" placeholder="e.g. Rahul" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Client Communication Email Address</label>
+                            <input type="email" name="customer_email" class="form-control" placeholder="client@example.com">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Price Rate Assessment (₹)</label>
+                            <input type="number" name="price" class="form-control" value="0">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Clock Expiration Threshold Boundary (IST)</label>
+                            <input type="datetime-local" name="expiry_date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Dynamic Rate Throttling Limit (Req/Min)</label>
+                            <input type="number" name="rate_limit" class="form-control" value="1000">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label-title">Hard Requests Metric Limit Counter</label>
+                            <input type="number" name="req_limit" class="form-control" value="5000" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label-title d-block">Route Module Scope Allocation Bindings</label>
+                        <div class="tools-matrix-grid">
+                            {% for tool in endpoints %}
+                            <label class="matrix-item-box" for="tool_{{ tool }}">
+                                <input class="matrix-checkbox" type="checkbox" name="tools" value="{{ tool }}" id="tool_{{ tool }}" checked>
+                                <span class="matrix-label">{{ tool.replace('_', ' ') }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-title">Key Response Note Annotation String</label>
+                        <input type="text" name="key_note" class="form-control" placeholder="e.g. Key Registered under SHAYAN_EXPLORER Gateway Layer">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label-title">Internal Administrative Reference Notes</label>
+                        <textarea name="admin_notes" class="form-control" rows="2" placeholder="Internal references only..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-action-primary px-4">Generate Token Infrastructure</button>
+                </form>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-title">Live Key Subscriptions Cache Index</div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle small mb-0">
+                        <thead>
+                            <tr class="text-secondary border-secondary">
+                                <th>Client Name</th>
+                                <th>Key Credentials</th>
+                                <th>Expiry Execution Window</th>
+                                <th>Request Load Tracker</th>
+                                <th>Module Permissions</th>
+                                <th class="text-end">Revoke</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for token_id, item in keys.items() %}
+                            <tr class="border-secondary border-opacity-50">
+                                <td class="fw-bold text-white">{{ item.name }}</td>
+                                <td><code class="text-info font-monospace small bg-opacity-10 bg-info px-2 py-1 rounded">{{ token_id }}</code></td>
+                                <td class="text-light-50 small">{{ item.expiry.replace('T', ' ') }}</td>
+                                <td><span class="badge bg-secondary rounded-pill font-monospace px-2 py-1">{{ item.used }} / {{ item.limit }}</span></td>
+                                <td style="max-width: 260px; white-space: normal;">
+                                    {% for scoped_tool in item.allowed_tools %}
+                                    <span class="badge-scope-pill">{{ scoped_tool }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="/keys/revoke/{{ token_id }}" class="btn btn-sm btn-outline-danger border-0 py-1 px-2"><i class="bi bi-trash3-fill"></i></a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="card-header-title text-indigo" style="color: #a5b4fc;"><i class="bi bi-journal-code me-2"></i>Live Dynamic Access History Logs</div>
+                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                    <table class="table table-dark table-striped align-middle small mb-0">
+                        <thead>
+                            <tr class="text-secondary small border-secondary">
+                                <th style="width: 170px;">Execution Clock Timestamp</th>
+                                <th style="width: 130px;">Route Metric Trigger</th>
+                                <th>Generated Activity Audit Log Payload Trace Description</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-family: monospace; font-size: 0.84rem;">
+                            {% for record in logs %}
+                            <tr class="border-secondary border-opacity-20">
+                                <td class="text-muted">{{ record.timestamp }}</td>
+                                <td><span class="badge bg-primary bg-opacity-10 text-indigo border border-primary border-opacity-20 px-2 py-1">{{ record.endpoint }}</span></td>
+                                <td class="text-light-50 fw-semibold">{{ record.details }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4 small font-sans-serif">Waiting for pipeline requests loop metrics tracking transactions stream injection...</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleLayoutStructure() {
+            if (window.innerWidth > 991.98) {
+                // Handle desktop full wide viewport changes cleanly
+                document.body.classList.toggle('sidebar-collapsed');
+            } else {
+                // Trigger full screen mobile custom navigation drawers cleanly
+                document.body.classList.toggle('sidebar-opened-mobile');
+            }
+        }
+
+        function dismissMobileSidebar() {
+            document.body.classList.remove('sidebar-opened-mobile');
+        }
+    </script>
+    {% endif %}
+
+</body>
+</html>
