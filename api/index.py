@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 # --- REST OF YOUR CODE STAYS EXACTLY THE SAME ---
 ADMIN_CREDENTIALS = {"username": "vernex", "password": "vernex@16"}
-UPSTREAM_BASE_KEY = "vernex-6a9dc4fdd5923c40b0aba27bf1e39e3f"
+UPSTREAM_BASE_KEY = "vx-osint"
 UPSTREAM_URL = "https://ft-osint-api.duckdns.org/api"
 
 API_KEYS_DB = {
