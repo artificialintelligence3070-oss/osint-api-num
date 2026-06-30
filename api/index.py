@@ -5,19 +5,21 @@ from fastapi import FastAPI, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-# Initialize standard application target core bind
-app = FastAPI()
+# FastAPI ऐप इनिशियलाइज़ेशन
+app = FastAPI(title="SHAYAN_EXPLORER Hub Engine")
 
-# Absolute execution layout mapping for Vercel Serverless environment
+# Vercel के लिए सबसे सुरक्षित पाथमैपिंग
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES_DIR = os.path.join(os.path.dirname(CURRENT_DIR), "templates")
+BASE_DIR = os.path.dirname(CURRENT_DIR)
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
-# Backup path fallback trace strategy
+# अगर फ़ोल्डर फ्लैट हो गया हो तो बैकअप पाथ स्ट्रैटेजी
 if not os.path.exists(TEMPLATES_DIR):
     TEMPLATES_DIR = os.path.join(CURRENT_DIR, "templates")
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+# क्रेडेंशियल्स और डेटाबेस
 ADMIN_CREDENTIALS = {"username": "vernex", "password": "vernex@16"}
 UPSTREAM_BASE_KEY = "vx-osint"
 UPSTREAM_URL = "https://ft-osint-api.duckdns.org/api"
@@ -51,6 +53,8 @@ def check_auth_session(request: Request):
     if session != "active_secure_shayan_auth_token":
         raise HTTPException(status_code=401)
     return True
+
+# --- राउट्स ---
 
 @app.get("/", response_class=HTMLResponse)
 async def login_interface(request: Request):
@@ -136,25 +140,25 @@ async def action_delete_key(key_id: str, request: Request):
 @app.get("/api/{endpoint}")
 async def gateway_proxy_handler(endpoint: str, request: Request):
     if endpoint not in VALID_ENDPOINTS:
-        return JSONResponse(status_code=404, content={"status": "error", "message": "Endpoint profile not found"})
+        return JSONResponse(status_code=404, content={"status": "error", "message": "Endpoint not found"})
     
     query_params = dict(request.query_params)
     user_provided_key = query_params.get("key")
     
     if not user_provided_key or user_provided_key not in API_KEYS_DB:
-        return JSONResponse(status_code=401, content={"status": "error", "message": "Access Denied: Invalid Key."})
+        return JSONResponse(status_code=401, content={"status": "error", "message": "Invalid API key."})
     
     target_key_metadata = API_KEYS_DB[user_provided_key]
     
     current_time_iso = datetime.datetime.now().isoformat()
     if target_key_metadata["expiry"] and current_time_iso > target_key_metadata["expiry"]:
-        return JSONResponse(status_code=403, content={"status": "error", "message": "Key Expiration reached."})
+        return JSONResponse(status_code=403, content={"status": "error", "message": "Key has expired."})
         
     if target_key_metadata["used"] >= target_key_metadata["limit"]:
-        return JSONResponse(status_code=429, content={"status": "error", "message": "Usage Limit reached."})
+        return JSONResponse(status_code=429, content={"status": "error", "message": "Request balance exhausted."})
     
     if target_key_metadata["allowed_tools"] and endpoint not in target_key_metadata["allowed_tools"]:
-        return JSONResponse(status_code=403, content={"status": "error", "message": f"Module denied access to [{endpoint}]"})
+        return JSONResponse(status_code=403, content={"status": "error", "message": f"No access to [{endpoint}]"})
 
     input_argument_keys = [k for k in query_params.keys() if k != 'key']
     payload_value = query_params.get(input_argument_keys[0], "N/A") if input_argument_keys else "N/A"
@@ -190,4 +194,4 @@ async def gateway_proxy_handler(endpoint: str, request: Request):
             
         return upstream_payload
     except Exception:
-        return JSONResponse(status_code=500, content={"status": "error", "message": "Interface error."})
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Upstream connection fault."})
