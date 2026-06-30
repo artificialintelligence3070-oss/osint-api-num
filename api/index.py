@@ -5,15 +5,16 @@ from fastapi import FastAPI, Request, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-app = FastAPI(title="SHAYAN_EXPLORER Hub Engine")
+# Initialize standard application target core bind
+app = FastAPI()
 
-# Ultimate Fallback Safe Directory Mapping
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+# Absolute execution layout mapping for Vercel Serverless environment
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_DIR = os.path.join(os.path.dirname(CURRENT_DIR), "templates")
 
-# Fallback checking just in case Vercel flattens directories
+# Backup path fallback trace strategy
 if not os.path.exists(TEMPLATES_DIR):
-    TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    TEMPLATES_DIR = os.path.join(CURRENT_DIR, "templates")
 
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
@@ -63,7 +64,7 @@ async def process_login(username: str = Form(...), password: str = Form(...)):
         response = RedirectResponse(url="/dashboard", status_code=303)
         response.set_cookie(key="shayan_admin_session", value="active_secure_shayan_auth_token", httponly=True, path="/")
         return response
-    return templates.TemplateResponse("dashboard.html", {"request": {}, "page": "login", "error": "Invalid username or password credentials."})
+    return templates.TemplateResponse("dashboard.html", {"request": {}, "page": "login", "error": "Invalid login credentials."})
 
 @app.get("/auth/logout")
 async def process_logout():
@@ -135,25 +136,25 @@ async def action_delete_key(key_id: str, request: Request):
 @app.get("/api/{endpoint}")
 async def gateway_proxy_handler(endpoint: str, request: Request):
     if endpoint not in VALID_ENDPOINTS:
-        return JSONResponse(status_code=404, content={"status": "error", "message": "Endpoint not found"})
+        return JSONResponse(status_code=404, content={"status": "error", "message": "Endpoint profile not found"})
     
     query_params = dict(request.query_params)
     user_provided_key = query_params.get("key")
     
     if not user_provided_key or user_provided_key not in API_KEYS_DB:
-        return JSONResponse(status_code=401, content={"status": "error", "message": "Invalid API key."})
+        return JSONResponse(status_code=401, content={"status": "error", "message": "Access Denied: Invalid Key."})
     
     target_key_metadata = API_KEYS_DB[user_provided_key]
     
     current_time_iso = datetime.datetime.now().isoformat()
     if target_key_metadata["expiry"] and current_time_iso > target_key_metadata["expiry"]:
-        return JSONResponse(status_code=403, content={"status": "error", "message": "Key has expired."})
+        return JSONResponse(status_code=403, content={"status": "error", "message": "Key Expiration reached."})
         
     if target_key_metadata["used"] >= target_key_metadata["limit"]:
-        return JSONResponse(status_code=429, content={"status": "error", "message": "Request balance exhausted."})
+        return JSONResponse(status_code=429, content={"status": "error", "message": "Usage Limit reached."})
     
     if target_key_metadata["allowed_tools"] and endpoint not in target_key_metadata["allowed_tools"]:
-        return JSONResponse(status_code=403, content={"status": "error", "message": f"No access to [{endpoint}]"})
+        return JSONResponse(status_code=403, content={"status": "error", "message": f"Module denied access to [{endpoint}]"})
 
     input_argument_keys = [k for k in query_params.keys() if k != 'key']
     payload_value = query_params.get(input_argument_keys[0], "N/A") if input_argument_keys else "N/A"
@@ -189,4 +190,4 @@ async def gateway_proxy_handler(endpoint: str, request: Request):
             
         return upstream_payload
     except Exception:
-        return JSONResponse(status_code=500, content={"status": "error", "message": "Upstream error connection interface."})
+        return JSONResponse(status_code=500, content={"status": "error", "message": "Interface error."})
